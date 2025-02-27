@@ -16,24 +16,26 @@ export const fetchDataById = createAsyncThunk("slot/:id", async (id) => {
 });
 
 // Booking slot
-export const postData = createAsyncThunk("slot/book", async (newData) => {
-  const response = await axios.post(`${API_URL}slot/book`, newData);
-  return response.data;
-});
+export const postData = createAsyncThunk(
+    "slot/book",
+    async (slotData, { rejectWithValue }) => {
+      try {
+        const response = await axios.post(`${API_URL}slot/book`, slotData);
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to book slot");
+      }
+    }
+);
 
 const dataSlice = createSlice({
     name: "data",
     initialState: {
       data: [],
-      selectedSlot: null,
       status: "idle",
       error: null,
     },
-    reducers: {
-      setSelectedSlot: (state, action) => {
-        state.selectedSlot = action.payload;
-      },
-    },
+    reducers: {},
     extraReducers: (builder) => {
       builder
         .addCase(fetchData.pending, (state) => {
@@ -51,18 +53,25 @@ const dataSlice = createSlice({
             state.status = "loading";
         })
         .addCase(fetchDataById.fulfilled, (state, action) => {
-            state.selectedSlot = action.payload;
             state.status = "succeeded";
+            state.data = action.payload;
         })
         .addCase(fetchDataById.rejected, (state, action) => {
-            state.error = action.error.message;
             state.status = "failed";
+            state.error = action.error.message;
+        })
+        .addCase(postData.pending, (state) => {
+            state.status = "loading";
         })
         .addCase(postData.fulfilled, (state, action) => {
-            state.data.push(action.payload);
+            state.status = "succeeded";
+            state.data = action.payload;
+        })
+        .addCase(postData.rejected, (state, action) => {
+            state.status = "failed";
+            state.error = action.payload;
         });
     },
 });
 
-export const { setSelectedSlot } = dataSlice.actions;
 export default dataSlice.reducer;
